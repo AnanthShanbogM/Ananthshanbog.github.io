@@ -1,201 +1,93 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Interactive Password Vault</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #1e1e2f;
-      color: #ffffff;
-      margin: 0;
-      padding: 0;
-      display: flex;
-      height: 100vh;
-      align-items: center;
-      justify-content: center;
-    }
+const MASTER_PASSWORD = "123";
 
-    .container {
-      background: #2e2e40;
-      padding: 30px;
-      border-radius: 10px;
-      box-shadow: 0 0 15px rgba(0,0,0,0.3);
-      width: 90%;
-      max-width: 500px;
-    }
+function checkPassword() {
+  const input = document.getElementById("passwordInput").value;
+  const error = document.getElementById("errorMsg");
+  if (input === MASTER_PASSWORD) {
+    document.querySelector(".login").style.display = "none";
+    document.getElementById("vault").style.display = "block";
+    error.textContent = "";
+    loadEntries();  // Load saved entries after successful login
+  } else {
+    error.textContent = "Incorrect password!";
+  }
+}
 
-    h1 {
-      text-align: center;
-      margin-bottom: 20px;
-    }
+function addEntry() {
+  const site = document.getElementById("siteInput").value.trim();
+  const user = document.getElementById("userInput").value.trim();
+  const pass = document.getElementById("passInput").value.trim();
 
-    input, button {
-      width: 100%;
-      padding: 10px;
-      margin-top: 10px;
-      border: none;
-      border-radius: 5px;
-      font-size: 16px;
-    }
+  if (!site || !user || !pass) {
+    alert("Please fill in all fields.");
+    return;
+  }
 
-    input[type="text"] {
-      margin-bottom: 10px;
-    }
+  const entry = {
+    site: site,
+    username: user,
+    password: pass,
+  };
 
-    button {
-      background: #4caf50;
-      color: white;
-      cursor: pointer;
-    }
+  let entries = JSON.parse(localStorage.getItem("passwordEntries")) || [];
+  entries.push(entry);
 
-    .error {
-      color: red;
-      text-align: center;
-      margin-top: 10px;
-    }
+  // Save updated entries to localStorage
+  localStorage.setItem("passwordEntries", JSON.stringify(entries));
 
-    .vault {
-      display: none;
-    }
+  // Clear input fields
+  document.getElementById("siteInput").value = "";
+  document.getElementById("userInput").value = "";
+  document.getElementById("passInput").value = "";
 
-    .entry {
-      background: #3a3a50;
-      padding: 10px;
-      border-radius: 5px;
-      margin: 10px 0;
-    }
+  displayEntries();  // Refresh the displayed entries
+}
 
-    .controls {
-      display: flex;
-      gap: 10px;
-      margin-top: 15px;
-    }
+function loadEntries() {
+  let entries = JSON.parse(localStorage.getItem("passwordEntries")) || [];
+  displayEntries(entries);
+}
 
-    .controls button {
-      flex: 1;
-    }
+function displayEntries(entries = []) {
+  const entriesContainer = document.getElementById("entries");
+  entriesContainer.innerHTML = "";
 
-    .label {
-      margin-bottom: 5px;
-      font-weight: bold;
-    }
-  </style>
+  entries.forEach(entry => {
+    const entryDiv = document.createElement("div");
+    entryDiv.className = "entry";
+    entryDiv.innerHTML = `
+      <strong>Site:</strong> ${entry.site}<br>
+      <strong>Username:</strong> ${entry.username}<br>
+      <strong>Password:</strong> ${entry.password}
+    `;
+    entriesContainer.appendChild(entryDiv);
+  });
+}
 
-  <!-- Google reCAPTCHA script -->
-  <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+function downloadBackup() {
+  const entries = document.querySelectorAll(".entry");
+  if (entries.length === 0) {
+    alert("No entries to back up.");
+    return;
+  }
 
-</head>
-<body>
-  <div class="container">
-    <div class="login">
-      <h1>Login</h1>
-      <input type="password" id="passwordInput" placeholder="Enter master password" />
-      
-      <!-- Google reCAPTCHA widget -->
-      <div class="g-recaptcha" data-sitekey="YOUR_SITE_KEY"></div>
-      
-      <button onclick="checkPassword()">Unlock Vault</button>
-      <p class="error" id="errorMsg"></p>
-    </div>
+  let content = "My Password Vault Backup:\n\n";
 
-    <div class="vault" id="vault">
-      <h1>Password Vault</h1>
+  entries.forEach((entry, index) => {
+    const lines = entry.innerText.split("\n").map(line => line.trim()).join("\n");
+    content += `${index + 1}.\n${lines}\n\n`;
+  });
 
-      <div id="entryForm">
-        <div class="label">Site</div>
-        <input type="text" id="siteInput" placeholder="e.g. Gmail" />
-        <div class="label">Username</div>
-        <input type="text" id="userInput" placeholder="e.g. user@gmail.com" />
-        <div class="label">Password</div>
-        <input type="text" id="passInput" placeholder="e.g. mySecurePassword123" />
-        <button onclick="addEntry()">Add Entry</button>
-      </div>
+  const blob = new Blob([content], { type: "text/plain" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "password_vault_backup.txt";
+  link.click();
+}
 
-      <div id="entries"></div>
-
-      <div class="controls">
-        <button onclick="downloadBackup()">Download Backup</button>
-        <button onclick="clearEntries()" style="background:#f44336;">Clear All</button>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    const MASTER_PASSWORD = "123";
-
-    function checkPassword() {
-      const input = document.getElementById("passwordInput").value;
-      const error = document.getElementById("errorMsg");
-
-      // Check if reCAPTCHA is verified
-      const recaptchaResponse = grecaptcha.getResponse();
-      if (recaptchaResponse.length === 0) {
-        error.textContent = "Please verify that you are not a robot.";
-        return;
-      }
-
-      if (input === MASTER_PASSWORD) {
-        document.querySelector(".login").style.display = "none";
-        document.getElementById("vault").style.display = "block";
-        error.textContent = "";
-      } else {
-        error.textContent = "Incorrect password!";
-      }
-    }
-
-    function addEntry() {
-      const site = document.getElementById("siteInput").value.trim();
-      const user = document.getElementById("userInput").value.trim();
-      const pass = document.getElementById("passInput").value.trim();
-
-      if (!site || !user || !pass) {
-        alert("Please fill in all fields.");
-        return;
-      }
-
-      const entryDiv = document.createElement("div");
-      entryDiv.className = "entry";
-      entryDiv.innerHTML = ` 
-        <strong>Site:</strong> ${site}<br>
-        <strong>Username:</strong> ${user}<br>
-        <strong>Password:</strong> ${pass}
-      `;
-
-      document.getElementById("entries").appendChild(entryDiv);
-
-      document.getElementById("siteInput").value = "";
-      document.getElementById("userInput").value = "";
-      document.getElementById("passInput").value = "";
-    }
-
-    function downloadBackup() {
-      const entries = document.querySelectorAll(".entry");
-      if (entries.length === 0) {
-        alert("No entries to back up.");
-        return;
-      }
-
-      let content = "My Password Vault Backup:\n\n";
-
-      entries.forEach((entry, index) => {
-        const lines = entry.innerText.split("\n").map(line => line.trim()).join("\n");
-        content += `${index + 1}.\n${lines}\n\n`;
-      });
-
-      const blob = new Blob([content], { type: "text/plain" });
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = "password_vault_backup.txt";
-      link.click();
-    }
-
-    function clearEntries() {
-      if (confirm("Are you sure you want to remove all entries?")) {
-        document.getElementById("entries").innerHTML = "";
-      }
-    }
-  </script>
-</body>
-</html>
+function clearEntries() {
+  if (confirm("Are you sure you want to remove all entries?")) {
+    localStorage.removeItem("passwordEntries");
+    displayEntries([]);  // Clear the displayed entries
+  }
+}
