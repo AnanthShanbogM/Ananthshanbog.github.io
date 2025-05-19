@@ -1,0 +1,1 @@
+console.log("Welcome to Ananth.com! You can add your scripts here.");
