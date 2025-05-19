@@ -1,22 +1,185 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome to Ananth.com</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Interactive Password Vault</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #1e1e2f;
+      color: #ffffff;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      height: 100vh;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .container {
+      background: #2e2e40;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.3);
+      width: 90%;
+      max-width: 500px;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    input, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+    }
+
+    input[type="text"] {
+      margin-bottom: 10px;
+    }
+
+    button {
+      background: #4caf50;
+      color: white;
+      cursor: pointer;
+    }
+
+    .error {
+      color: red;
+      text-align: center;
+      margin-top: 10px;
+    }
+
+    .vault {
+      display: none;
+    }
+
+    .entry {
+      background: #3a3a50;
+      padding: 10px;
+      border-radius: 5px;
+      margin: 10px 0;
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .controls button {
+      flex: 1;
+    }
+
+    .label {
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+  </style>
 </head>
 <body>
-    <header>
-        <h1>Welcome to Ananth.com</h1>
-        <p>Your future website, secured with HTTPS</p>
-    </header>
-    <main>
-        <p>This is a simple, clean homepage. Customize it as you like.</p>
-    </main>
-    <footer>
-        <p>&copy; 2025 Ananth.com</p>
-    </footer>
-    <script src="script.js"></script>
+  <div class="container">
+    <div class="login">
+      <h1>Login</h1>
+      <input type="password" id="passwordInput" placeholder="Enter master password" />
+      <button onclick="checkPassword()">Unlock Vault</button>
+      <p class="error" id="errorMsg"></p>
+    </div>
+
+    <div class="vault" id="vault">
+      <h1>Password Vault</h1>
+
+      <div id="entryForm">
+        <div class="label">Site</div>
+        <input type="text" id="siteInput" placeholder="e.g. Gmail" />
+        <div class="label">Username</div>
+        <input type="text" id="userInput" placeholder="e.g. user@gmail.com" />
+        <div class="label">Password</div>
+        <input type="text" id="passInput" placeholder="e.g. mySecurePassword123" />
+        <button onclick="addEntry()">Add Entry</button>
+      </div>
+
+      <div id="entries"></div>
+
+      <div class="controls">
+        <button onclick="downloadBackup()">Download Backup</button>
+        <button onclick="clearEntries()" style="background:#f44336;">Clear All</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const MASTER_PASSWORD = "123";
+
+    function checkPassword() {
+      const input = document.getElementById("passwordInput").value;
+      const error = document.getElementById("errorMsg");
+      if (input === MASTER_PASSWORD) {
+        document.querySelector(".login").style.display = "none";
+        document.getElementById("vault").style.display = "block";
+        error.textContent = "";
+      } else {
+        error.textContent = "Incorrect password!";
+      }
+    }
+
+    function addEntry() {
+      const site = document.getElementById("siteInput").value.trim();
+      const user = document.getElementById("userInput").value.trim();
+      const pass = document.getElementById("passInput").value.trim();
+
+      if (!site || !user || !pass) {
+        alert("Please fill in all fields.");
+        return;
+      }
+
+      const entryDiv = document.createElement("div");
+      entryDiv.className = "entry";
+      entryDiv.innerHTML = `
+        <strong>Site:</strong> ${site}<br>
+        <strong>Username:</strong> ${user}<br>
+        <strong>Password:</strong> ${pass}
+      `;
+
+      document.getElementById("entries").appendChild(entryDiv);
+
+      document.getElementById("siteInput").value = "";
+      document.getElementById("userInput").value = "";
+      document.getElementById("passInput").value = "";
+    }
+
+    function downloadBackup() {
+      const entries = document.querySelectorAll(".entry");
+      if (entries.length === 0) {
+        alert("No entries to back up.");
+        return;
+      }
+
+      let content = "My Password Vault Backup:\n\n";
+
+      entries.forEach((entry, index) => {
+        const lines = entry.innerText.split("\n").map(line => line.trim()).join("\n");
+        content += `${index + 1}.\n${lines}\n\n`;
+      });
+
+      const blob = new Blob([content], { type: "text/plain" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "password_vault_backup.txt";
+      link.click();
+    }
+
+    function clearEntries() {
+      if (confirm("Are you sure you want to remove all entries?")) {
+        document.getElementById("entries").innerHTML = "";
+      }
+    }
+  </script>
 </body>
 </html>
