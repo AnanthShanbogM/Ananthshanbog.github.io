@@ -82,12 +82,20 @@
       font-weight: bold;
     }
   </style>
+
+  <!-- Google reCAPTCHA script -->
+  <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+
 </head>
 <body>
   <div class="container">
     <div class="login">
       <h1>Login</h1>
       <input type="password" id="passwordInput" placeholder="Enter master password" />
+      
+      <!-- Google reCAPTCHA widget -->
+      <div class="g-recaptcha" data-sitekey="YOUR_SITE_KEY"></div>
+      
       <button onclick="checkPassword()">Unlock Vault</button>
       <p class="error" id="errorMsg"></p>
     </div>
@@ -120,6 +128,14 @@
     function checkPassword() {
       const input = document.getElementById("passwordInput").value;
       const error = document.getElementById("errorMsg");
+
+      // Check if reCAPTCHA is verified
+      const recaptchaResponse = grecaptcha.getResponse();
+      if (recaptchaResponse.length === 0) {
+        error.textContent = "Please verify that you are not a robot.";
+        return;
+      }
+
       if (input === MASTER_PASSWORD) {
         document.querySelector(".login").style.display = "none";
         document.getElementById("vault").style.display = "block";
@@ -141,7 +157,7 @@
 
       const entryDiv = document.createElement("div");
       entryDiv.className = "entry";
-      entryDiv.innerHTML = `
+      entryDiv.innerHTML = ` 
         <strong>Site:</strong> ${site}<br>
         <strong>Username:</strong> ${user}<br>
         <strong>Password:</strong> ${pass}
